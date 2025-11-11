@@ -25,3 +25,4 @@ class LoginPage:
 
     def assert_login_failure(self):
         expect(self.page.locator(self.flash)).to_contain_text("Your username is invalid!")
+

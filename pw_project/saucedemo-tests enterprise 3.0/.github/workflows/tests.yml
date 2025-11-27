@@ -1,0 +1,119 @@
+name: Playwright Tests + Allure Report with History
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: ["3.10"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Cache pip
+      - name: Cache pip
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      # Setup Python
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      # Install dependencies
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          playwright install --with-deps chromium
+
+      # Cache Playwright browsers
+      - name: Cache Playwright Browsers
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright
+          restore-keys: |
+            ${{ runner.os }}-playwright
+
+      # Install Allure
+      - name: Install Allure
+        run: npm install -g allure-commandline --save-dev
+
+      # Run tests
+      - name: Run tests
+        run: pytest tests/ --alluredir=allure-results
+
+      # Prepare Allure Report with History
+      - name: Prepare Allure Report
+        run: |
+          # Download previous history if exists
+          mkdir -p allure-history
+          if [ -d ./allure-report/history ]; then
+            cp -r ./allure-report/history allure-history/
+          fi
+          allure generate allure-results -o allure-report --clean --history ./allure-history
+
+      # Upload Playwright artifacts
+      - name: Upload Playwright Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: playwright-artifacts
+          path: |
+            **/*trace.zip
+            **/*.webm
+            **/*.png
+            allure-results/
+
+      # Upload Allure report as artifact
+      - name: Upload Allure Report
+        uses: actions/upload-artifact@v3
+        with:
+          name: allure-report
+          path: allure-report
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+        with:
+          path: allure-report
+
+  comment:
+    needs: deploy
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Comment Allure Report in PR
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          recreate: true
+          message: |
+            ### 🚀 Allure Report Updated
+            📊 **Allure Report:**  
+            👉 ${{ needs.deploy.outputs.page_url }}
+

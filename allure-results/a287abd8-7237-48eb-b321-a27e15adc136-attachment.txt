@@ -1,0 +1,10 @@
+
+📌 STEP :: Открываем страницу логина
+
+📌 STEP :: Вводим логин: wrong
+
+📌 STEP :: Вводим пароль
+
+📌 STEP :: Нажимаем Login
+
+📌 STEP :: Проверяем ошибку: Username and password do not match

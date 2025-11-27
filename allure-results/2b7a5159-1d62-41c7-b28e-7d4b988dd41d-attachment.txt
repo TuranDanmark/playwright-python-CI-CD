@@ -1,0 +1,20 @@
+
+📌 STEP :: Открываем страницу логина
+
+📌 STEP :: Вводим логин: standard_user
+
+📌 STEP :: Вводим пароль
+
+📌 STEP :: Нажимаем Login
+
+📌 STEP :: Проверяем URL Inventory
+
+📌 STEP :: Добавляем товар в корзину: Sauce Labs Backpack
+
+📌 STEP :: Получаем количество в корзине
+
+📌 STEP :: Переходим в корзину
+
+📌 STEP :: Проверяем загрузку корзины
+
+📌 STEP :: Проверяем, что товар добавлен: Sauce Labs Backpack

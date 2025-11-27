@@ -1,0 +1,64 @@
+name: Full CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  # 1️⃣ Node.js установка и тесты
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      - run: npm install
+      - run: npm test
+
+  # 2️⃣ Playwright тесты на нескольких браузерах
+  playwright-tests:
+    runs-on: ubuntu-latest
+    needs: build
+    strategy:
+      matrix:
+        browser: [chromium, firefox, webkit]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      - run: npm install
+      - run: npx playwright test --browser ${{ matrix.browser }}
+
+  # 3️⃣ Сбор Allure отчёта
+  allure-report:
+    runs-on: ubuntu-latest
+    needs: playwright-tests
+    steps:
+      - uses: actions/checkout@v3
+      - run: npm install
+      - run: npm test
+      - run: npm install -g allure-commandline --save-dev
+      - run: allure generate allure-results --clean -o allure-report
+      - name: Upload Allure Report as Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: allure-report
+          path: allure-report
+
+  # 4️⃣ Деплой (только если все предыдущие шаги успешны)
+  deploy:
+    runs-on: ubuntu-latest
+    needs: allure-report
+    if: success()  # Выполняется только при успешных предыдущих jobs
+    steps:
+      - uses: actions/checkout@v3
+      - run: npm install
+      - run: npm test
+      - name: Deploy to server
+        run: scp -r ./build user@server:/var/www/project
+        # Для GitHub Actions можно использовать secrets для логина и пароля
